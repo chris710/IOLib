@@ -58,7 +58,7 @@ int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
 		}
 	}
 		// check if we need to read at all
-	else if (f->pointer == 0 || (f->pointer + nbelem) > BUFFER_SIZE) {		//no data has been read yet or no all data is not in buffer
+	else if (f->pointer == 0 || (f->pointer + nbelem) > BUFFER_SIZE) {		//no data has been read yet or not all data is not in buffer
 		eof = read(f->file, f->rbuffer,BUFFER_SIZE);	//read as much as you can
 		/* check if eof */
 		if (!eof) {
@@ -67,12 +67,7 @@ int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
 		f->pointer == 0;
 	}
 	else { //just copy the data from buffer to the destination 
-		memcpy(p, f->rbuffer[f->pointer], eof);
-		/* check if eof */
-		if (!eof) {
-			f->eof = 1;
-		}
-		f->pointer == 0;
+		memcpy(p, f->rbuffer[f->pointer], nbelem);
 	}
 	/* return */
 	if (f->pointer + nbelem < BUFFER_SIZE && !eof)
@@ -86,49 +81,29 @@ int my_fwrite(void *p, size_t taille, size_t nbelem, MY_FILE *f) {
 	if (taille < nbelem) {			//error
 		return -1;
 	}
-	/* check if buffer is full */
-	if (f->wpointer == BUFFER_SIZE - 1) {	//if so write it
-		eof = write(f->file, f->wbuffer,BUFFER_SIZE);		//read what is left in the buffer
-	}
-	else if(nbelem > BUFFER_SIZE) {	//more to write than we can handle in one step
-		memcpy(f->rbuffer[0], p, eof);
-	}
-
-
-	if (!eof)		//error
-		return -1;
-
-
-
-
-
-	if (nbelem > BUFFER_SIZE) {		//check if the size is bigger than the buffer
-		int rest = (nbelem - (BUFFER_SIZE - f->pointer));	//how much more do need to read
-		eof = write(f->file, f->buffer,(BUFFER_SIZE - f->pointer));		//read what is left in the buffer
-		if (eof == -1) {			//error
-			return -1;
-		}
-		//for (i = 0; i < times; ++i) {
-		while (rest>=0) {
-			eof = write(f->file, f->buffer,(rest>BUFFER_SIZE ? BUFFER_SIZE : rest));
+	if(nbelem > BUFFER_SIZE) {	//more to write than we can handle in one step
+		int rest = (nbelem - (BUFFER_SIZE - f->wpointer));	//how much more do need to read
+		memcpy(f->wbuffer[0], p, (BUFFER_SIZE - f->wpointer));
+		while (rest>=0) {		//write BUFFER_SIZE chunks till you make it
+			eof = write(f->file, f->wbuffer,(rest>BUFFER_SIZE ? BUFFER_SIZE : rest));
 			rest -= BUFFER_SIZE;
 		}
 	}
-		// check if we need to read at all
-	else if (f->pointer == 0 || (f->pointer + nbelem) > BUFFER_SIZE) {		//no data has been read yet or no all data is not in buffer
-		eof = write(f->file, f->buffer,BUFFER_SIZE);	//read as much as you can
-		if (eof == -1) {			//error
-			return -1;
-		}
+		// check if we should write already
+	else if (f->wpointer == BUFFER_SIZE-1 || (f->wpointer + nbelem) > BUFFER_SIZE) {		//buffer is full or buffer will overflow
+		eof = write(f->file, f->wbuffer, f->wpointer+1);	//write what you already have
 	}
-	else { //just copy the data from buffer to the destination 
-		memcpy(p, f->buffer[f->pointer], eof);
+	else { //just add data to the buffer
+		memcpy(f->wbuffer[f->wpointer],p, nbelem);
 	}
 	/* return */
-//	if (f->pointer + nbelem < BUFFER_SIZE && !eof)
-//		f->pointer += nbelem;	//move the pointer
-	return nbelem;
+	if (f->wpointer + nbelem < BUFFER_SIZE && !eof)
+		f->wpointer += nbelem;	//move the pointer
+
+	if (!eof)		//error
+		return -1;
 	
+	return nbelem;
 }
 
 int my_feof(MY_FILE *f) {
