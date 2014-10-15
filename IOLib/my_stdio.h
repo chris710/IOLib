@@ -10,8 +10,10 @@
 
 typedef struct MY_FILE {
 	int file;	//file descriptor given by open
-	char* buffer;	//buffer for messages
-	int pointer;	//last element read in buffer
+	char* rbuffer;	//buffer for reading 
+	char* wbuffer;	//buffer for writing 
+	int pointer;	//last element read in rbuffer
+	int wpointer;	//last element written in wbuffer
 	int eof;	//eof occured during last read;
 }MY_FILE;
 
