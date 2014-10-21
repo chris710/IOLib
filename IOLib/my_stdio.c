@@ -35,10 +35,10 @@ int my_fclose(MY_FILE *f) {
 	/* free all the resources of MY_FILE */
 	if (close(f->file) < 0)
 		return 0;
-	free(f->previous);
-	free(f->wbuffer);
 	free(f->rbuffer);
-	if (f->wbuffer == NULL && f->rbuffer == NULL)
+	free(f->wbuffer);
+	//free(f->previous);
+	//if (f->wbuffer == NULL && f->rbuffer == NULL)
 		return 1;
 	return 0;
 }
@@ -49,6 +49,9 @@ int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
 	/* flushing buffer if other destination */
 	if (f->previous != NULL && p != f->previous) {
 		memcpy(f->previous, &(f->rbuffer[0]), f->pointer +1);	//copy everything there is
+		f->previous = p;
+	}
+	else if (f->previous == NULL) {
 		f->previous = p;
 	}
 	/* check for errors */
@@ -91,7 +94,7 @@ int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
 		memcpy(destination, &(f->rbuffer[f->pointer]), nbelem);
 	}
 	/* return */
-	if (!(f->pointer == (BUFFER_SIZE-1)) && f->rbuffer[f->pointer + 1] == NULL && !eof) {	//reached the end of buffer	//TODO null comparison doesn't work	/side condition!!!
+	if (!(f->pointer == (BUFFER_SIZE-1)) && (f->rbuffer[f->pointer + 1] > 128 || f->rbuffer[f->pointer+1] <0 || f->rbuffer[f->pointer+1] == NULL) && !eof) {	//reached the end of buffer	//TODO null comparison doesn't work	/side condition!!!
 		f->eof = 1;
 		return 0;
 	}
@@ -108,6 +111,9 @@ int my_fwrite(void *p, size_t taille, size_t nbelem, MY_FILE *f) {
 		memcpy(f->previous, &(f->rbuffer[0]), f->pointer +1);	//copy everything there is
 		if (eof = write(f->file, f->wbuffer, f->wpointer + 1) < 0)	//write what you already have
 			return -1;	//error but it shouldn't be here
+		f->previous = p;
+	}
+	else if (f->previous == NULL) {
 		f->previous = p;
 	}
 	/* check for errors */
