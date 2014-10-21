@@ -14,36 +14,47 @@ MY_FILE *my_fopen(char *name, char *mode) {
 		return NULL;
 
 	/* MY_FILE structure initialization */
-	char* new_buffer = (char*)malloc(sizeof(char)*BUFFER_SIZE);
-	char* new_wbuffer = (char*)malloc(sizeof(char)*BUFFER_SIZE);
-	//static MY_FILE new_file;
-	MY_FILE* new_file = (MY_FILE*)malloc(sizeof(MY_FILE*));
+	MY_FILE* new_file = (MY_FILE*)malloc(sizeof(MY_FILE*));			//static MY_FILE new_file;
 	//new_file = { new_desc, new_buffer, new_wbuffer, 0, 0, 0 };
+
+	char* new_buffer = (char*)malloc(sizeof(char)*BUFFER_SIZE);
+	if (*mode == 'r') {
+		new_file->rbuffer = new_buffer;
+		new_file->wbuffer = NULL;
+	}
+	else {
+		new_file->wbuffer = new_buffer;
+		new_file->rbuffer = NULL;
+	}
 	new_file->file = new_desc;
 	new_file->previous = NULL;
-	new_file->rbuffer = new_buffer;
-	new_file->wbuffer = new_wbuffer;
 	new_file->pointer = 0;
 	new_file->wpointer = 0;
 	new_file->eof = 0;
 
 	return new_file;
-	//return &new_file;
 }
 
 int my_fclose(MY_FILE *f) {
 	/* free all the resources of MY_FILE */
-	if (close(f->file) < 0)
+	int res;
+	if (res = close(f->file) < 0)
 		return 0;
-	free(f->rbuffer);
-	free(f->wbuffer);
-	//free(f->previous);
-	//if (f->wbuffer == NULL && f->rbuffer == NULL)
-		return 1;
-	return 0;
+	if (f->rbuffer != NULL)
+		free(f->rbuffer);
+	else
+		free(f->wbuffer);
+	free(f);
+	return 1;
 }
 
 int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
+
+	/* check for errors */
+	if (size < nbelem || f->rbuffer == NULL) {	//error
+		return -1;
+	}
+
 	int eof = 0;	//# of bytes read
 	void* destination = p;	// (void*)((char*)p + f->pointer);		//read from where
 	/* flushing buffer if other destination */
@@ -53,10 +64,6 @@ int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
 	}
 	else if (f->previous == NULL) {
 		f->previous = p;
-	}
-	/* check for errors */
-	if (size < nbelem) {	//error
-		return -1;
 	}
 	
 	if (nbelem > BUFFER_SIZE) {		//check if the size is bigger than the buffer
@@ -104,9 +111,15 @@ int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
 }
 
 int my_fwrite(void *p, size_t taille, size_t nbelem, MY_FILE *f) {
+	
+	/* check for errors */
+	if (taille < nbelem || f->wbuffer == NULL) {			//error
+		return -1;
+	}
+
 	int eof = 1;	//# of bytes written  
 	void* destination = p;	// (void*)((char*)p + f->wpointer);		//write to where
-	/* flushing buffer if other destination */
+	/* flushing buffer if destination is different */
 	if (f->previous != NULL && p != f->previous) {
 		memcpy(f->previous, &(f->rbuffer[0]), f->pointer +1);	//copy everything there is
 		if (eof = write(f->file, f->wbuffer, f->wpointer + 1) < 0)	//write what you already have
@@ -115,10 +128,6 @@ int my_fwrite(void *p, size_t taille, size_t nbelem, MY_FILE *f) {
 	}
 	else if (f->previous == NULL) {
 		f->previous = p;
-	}
-	/* check for errors */
-	if (taille < nbelem) {			//error
-		return -1;
 	}
 	if(nbelem > BUFFER_SIZE) {	//more to write than we can handle in one step
 		int rest = (nbelem - (BUFFER_SIZE - f->wpointer));	//how much more there is space left
