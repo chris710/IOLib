@@ -14,8 +14,7 @@ typedef struct MY_FILE {
 	int wpointer;	//last element written in wbuffer
 	int eof;	//eof occured during last read;
 	void* previous;	//where data comes from (for flushing)
-	char* rbuffer;	//buffer for reading 
-	char* wbuffer;	//buffer for writing 
+	char* buffer;	//buffer for reading 
 }MY_FILE;
 
 //opens a file 'name' in a mode 'mode'
