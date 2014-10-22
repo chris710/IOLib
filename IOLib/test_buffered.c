@@ -22,7 +22,7 @@ int main (int argc, char *argv[])
   if (f2 == NULL)
       exit (-3);
  
-  result = my_fread(cp, 1, 1, f1);
+  /*result = my_fread(cp, 1, 1, f1);
   while (result == 1)
     {
       result = my_fwrite(cp, 1, 1, f2);
@@ -31,7 +31,8 @@ int main (int argc, char *argv[])
       result = my_fread(cp, 1, 1, f1);
     }
   if (result == -1)
-      exit(-5);
+      exit(-5); */
+  my_fprintf(f2, "test %s chojow", "zero");
   my_fclose(f1);
   my_fclose(f2);
   return 0;

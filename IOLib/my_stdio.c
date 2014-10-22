@@ -112,7 +112,7 @@ int my_fwrite(void *p, size_t taille, size_t nbelem, MY_FILE *f) {
 	void* destination = p;	// (void*)((char*)p + f->wpointer);		//write to where
 	/* flushing buffer if destination is different */
 	if (f->previous != NULL && p != f->previous) {
-		memcpy(f->previous, &(f->buffer[0]), f->pointer +1);	//copy everything there is
+		//memcpy(f->previous, &(f->buffer[0]), f->pointer +1);	//copy everything there is
 		if (eof = write(f->file, f->buffer, f->wpointer + 1) < 0)	//write what you already have
 			return -1;	//error but it shouldn't be here
 		f->previous = p;
@@ -162,7 +162,55 @@ int my_feof(MY_FILE *f) {
 
 /**  FORMATED I/O  SECTION  **/
 int my_fprintf(MY_FILE *f, char *format, ...) {
+	va_list args;	//list of arguments
+	int i=0,num=0;	//iterator/number of args read
+	char temp = *(format+i);		//currently printed character
+	char* string;	//string for formating
+	int tempint;	//int for formating
+	/* Initializing arguments to store all values after f */
+	va_start(args, format);
 
+	/* loop for entire inputed string */
+	while ( temp != NULL)	
+	{
+
+		if ( temp != '%')	//dealing with a normal text
+			my_fwrite(&temp, 1, 1, f);
+		else {						//inserting formating
+			switch (*(format + i + 1)) {
+				case 'd':		//integer
+					tempint = va_arg(args, int);	//integer for conversion
+					//temp = (char)tempint;
+					temp = (char)(((int)'0') + tempint);
+					my_fwrite(&temp, 1, 1, f);
+					break;
+				case 'c':		//character
+					temp = va_arg(args, char);
+					my_fwrite(&temp, 1, 1, f);
+					break;
+				case 's':		//string
+					/* loop */
+					string = va_arg(args, char*);	//string to be inserted
+					int j = 0;
+					temp = *(string+j) ;				//temporary character to read string one char at a time
+					while (temp != '\0') {
+						my_fwrite(&temp, 1, 1, f);
+						j++;
+						temp = *(string +j);
+					}
+					break;
+				default:
+					return -1;
+			}
+			num++;
+			i++;
+		}
+		i++;
+		temp = *(format + i);
+	}
+	va_end(args);                 // Cleans up the list
+
+	return num;
 }
 
 int my_fscanf(MY_FILE *f, char *format, ...) {
