@@ -21,10 +21,12 @@ MY_FILE *my_fopen(char *name, char *mode) {
 	if (*mode == 'r') {
 		new_file->rbuffer = new_buffer;
 		new_file->wbuffer = NULL;
+		new_file->wbuffer = new_buffer;
 	}
 	else {
 		new_file->wbuffer = new_buffer;
 		new_file->rbuffer = NULL;
+		new_file->rbuffer = new_buffer;
 	}
 	new_file->file = new_desc;
 	new_file->previous = NULL;
@@ -36,16 +38,19 @@ MY_FILE *my_fopen(char *name, char *mode) {
 }
 
 int my_fclose(MY_FILE *f) {
+	if (f == NULL)
+		return -1;
 	/* free all the resources of MY_FILE */
 	int res;
 	if (res = close(f->file) < 0)
 		return 0;
-	if (f->rbuffer != NULL)
+	//if (f->rbuffer != NULL)
+	f->rbuffer = calloc(BUFFER_SIZE, sizeof(int));
 		free(f->rbuffer);
-	else
-		free(f->wbuffer);
+	//else
+		//free(f->wbuffer);
 	free(f);
-	return 1;
+	return 0;
 }
 
 int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
