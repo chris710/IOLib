@@ -31,6 +31,16 @@ MY_FILE *my_fopen(char *name, char *mode) {
 int my_fclose(MY_FILE *f) {
 	if (f == NULL)
 		return -1;
+	
+	/* flush the buffer if not empty */
+	if (f->pointer != 0 || f->wpointer != 0) {	
+		if (f->wpointer != 0)
+			//memcpy(&(f->buffer[f->wpointer]),f->previous, f->wpointer);
+			memcpy(f->file,f->buffer, f->wpointer);
+		else
+			//memcpy(f->previous, &(f->buffer[f->pointer]), f->pointer);
+			memcpy(f->previous, f->buffer, f->pointer);
+	}
 	/* free all the resources of MY_FILE */
 	int res;
 	if (res = close(f->file) < 0)
@@ -173,7 +183,6 @@ int my_fprintf(MY_FILE *f, char *format, ...) {
 	/* loop for entire inputed string */
 	while ( temp != NULL)	
 	{
-
 		if ( temp != '%')	//dealing with a normal text
 			my_fwrite(&temp, 1, 1, f);
 		else {						//inserting formating
@@ -214,5 +223,48 @@ int my_fprintf(MY_FILE *f, char *format, ...) {
 }
 
 int my_fscanf(MY_FILE *f, char *format, ...) {
+	va_list args;	//list of arguments
+	int i=0,num=0;	//iterator/number of args read
+	char temp = *(format+i);		//currently scanned character
+	char* string;	//string for formating
+	int* tempint;	//int for formating
+	/* Initializing arguments to store all values after f */
+	va_start(args, format);
 
+	/* loop for entire inputed string */
+	while (temp != NULL)		
+	{
+		switch (*(format + i + 1)) {
+			case 'd':		//integer
+				//tempint = va_arg(args, int);	//integer for conversion
+				//temp = (char)tempint;
+				//temp = (char)(((int)'0') + tempint);
+				//my_fread(&temp, 1, 1, f);
+				tempint = va_arg(args, int*);
+				//my_fread(va_arg(args, int*), 1, 1, f);
+				my_fread(tempint, 1, 1, f);
+				break;
+			case 'c':		//character
+				temp = va_arg(args, char*);
+				my_fread(&temp, 1, 1, f);
+				break;
+			case 's':		//string
+				/* loop */
+				string = va_arg(args, char*);	//string to be inserted
+				int j = 0;
+				temp = *(string + j);				//temporary character to read string one char at a time
+				while (temp != '\0') {
+					my_fread(&temp, 1, 1, f);
+					j++;
+					temp = *(string + j);
+				}
+				break;
+			default:
+				return -1;
+		}
+		num++;
+		i+=2;
+		temp = *(format + i);
+	}
+	return num;
 }

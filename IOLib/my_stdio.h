@@ -40,7 +40,7 @@ int my_feof(MY_FILE *f);
 //writes text to 'f'
 int my_fprintf(MY_FILE *f, char *format, ...);
 
-//reads addresses after format from 'f'
+//writes to addresses after format from file 'f'
 int my_fscanf(MY_FILE *f, char *format, ...);
 
 

@@ -5,8 +5,7 @@ int main (int argc, char *argv[])
 {
   MY_FILE *f1;
   MY_FILE *f2;
-  char* cp = (char*)malloc(sizeof(char)*BUFFER_SIZE);
-  char c = cp[0];
+  char c;
   int result;
 
   // for the sake of simplicity we don't
@@ -33,6 +32,7 @@ int main (int argc, char *argv[])
   if (result == -1)
       exit(-5); */
   my_fprintf(f2, "test %s chojow", "zero");
+  my_fscanf(f1, "%d", &result);
   my_fclose(f1);
   my_fclose(f2);
   return 0;
