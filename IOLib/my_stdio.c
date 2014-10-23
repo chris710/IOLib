@@ -169,8 +169,11 @@ int my_feof(MY_FILE *f) {
 }
 
 
+		///////////////////////////////////////
+		/**		FORMATED I/O  SECTION		**/
+		///////////////////////////////////////
 
-/**  FORMATED I/O  SECTION  **/
+
 int my_fprintf(MY_FILE *f, char *format, ...) {
 	va_list args;	//list of arguments
 	int i=0,num=0;	//iterator/number of args read
@@ -227,7 +230,8 @@ int my_fscanf(MY_FILE *f, char *format, ...) {
 	int i=0,num=0;	//iterator/number of args read
 	char temp = *(format+i);		//currently scanned character
 	char* string;	//string for formating
-	int* tempint;	//int for formating
+	int* destint;	//address for integer values
+	int tempint = 0;	//int for formating
 	/* Initializing arguments to store all values after f */
 	va_start(args, format);
 
@@ -236,13 +240,17 @@ int my_fscanf(MY_FILE *f, char *format, ...) {
 	{
 		switch (*(format + i + 1)) {
 			case 'd':		//integer
-				//tempint = va_arg(args, int);	//integer for conversion
+				destint = va_arg(args, int*);	//integer for conversion
 				//temp = (char)tempint;
 				//temp = (char)(((int)'0') + tempint);
 				//my_fread(&temp, 1, 1, f);
-				tempint = va_arg(args, int*);
-				//my_fread(va_arg(args, int*), 1, 1, f);
-				my_fread(tempint, 1, 1, f);
+				//my_fread(va_arg(args, int*), 1, 1, f);	//why bother?
+				if (read(f->file, &tempint,1) < 0)		//read what is left in the buffer
+					return -1;
+				//*destint = (char)(((int)'0') + tempint);
+				*destint = tempint - '0';//tempint;
+				//memcpy(tempint, (int)(f->buffer[f->pointer]), 1);
+
 				break;
 			case 'c':		//character
 				temp = va_arg(args, char*);
