@@ -34,10 +34,11 @@ int my_fclose(MY_FILE *f) {
 	
 	/* flush the buffer if not empty */
 	if (f->pointer != 0 || f->wpointer != 0) {	
-		if (f->wpointer != 0)
+		/*if (f->wpointer != 0)
 			//memcpy(&(f->buffer[f->wpointer]),f->previous, f->wpointer);
 			memcpy(f->file,f->buffer, f->wpointer);
-		else
+		else*/
+		if (f->pointer != 0)
 			//memcpy(f->previous, &(f->buffer[f->pointer]), f->pointer);
 			memcpy(f->previous, f->buffer, f->pointer);
 	}
@@ -253,15 +254,16 @@ int my_fscanf(MY_FILE *f, char *format, ...) {
 
 				break;
 			case 'c':		//character
-				temp = va_arg(args, char*);
-				my_fread(&temp, 1, 1, f);
+				//temp = va_arg(args, char*);
+				//my_fread(temp, 1, 1, f);
+				my_fread(va_arg(args,char*), 1, 1, f);
 				break;
 			case 's':		//string
 				/* loop */
 				string = va_arg(args, char*);	//string to be inserted
 				int j = 0;
 				temp = *(string + j);				//temporary character to read string one char at a time
-				while (temp != '\0') {
+				while ((temp != ' ' || temp != '\n') && !(f->eof)) {
 					my_fread(&temp, 1, 1, f);
 					j++;
 					temp = *(string + j);
