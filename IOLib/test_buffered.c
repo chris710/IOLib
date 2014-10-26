@@ -1,12 +1,11 @@
-#include <stdlib.h>
-#include "my_stdio.h"
+#include "./my_stdio.h"
 
 int main (int argc, char *argv[])
 {
   MY_FILE *f1;
   MY_FILE *f2;
   char c;
-  char* str;
+  char str[1];
   int result;
 
   // for the sake of simplicity we don't
@@ -22,18 +21,24 @@ int main (int argc, char *argv[])
   if (f2 == NULL)
       exit (-3);
  
-  /*result = my_fread(cp, 1, 1, f1);
+  /* IO TEST */
+  result = my_fread(str, 1, 1, f1);
   while (result == 1)
     {
-      result = my_fwrite(cp, 1, 1, f2);
+      result = my_fwrite(str, 1, 1, f2);
       if (result == -1)
           exit(-4);
-      result = my_fread(cp, 1, 1, f1);
+      result = my_fread(str, 1, 1, f1);
     }
   if (result == -1)
-      exit(-5); */
-  my_fprintf(f2, "test %s chojow", "zero");
+      exit(-5);
+  
+  /* FORMATED IO TEST */
+  /*my_fscanf(f1, "%d", &result);
   my_fscanf(f1, "%s", &c);
+  my_fprintf(f2, "test %s chojow", "zero");*/
+
+  
   my_fclose(f1);
   my_fclose(f2);
   return 0;

@@ -34,11 +34,13 @@ int my_fclose(MY_FILE *f) {
 	
 	/* flush the buffer if not empty */
 	if (f->pointer != 0 || f->wpointer != 0) {	
-		/*if (f->wpointer != 0)
+		if (f->wpointer != 0)
 			//memcpy(&(f->buffer[f->wpointer]),f->previous, f->wpointer);
-			memcpy(f->file,f->buffer, f->wpointer);
-		else*/
-		if (f->pointer != 0)
+			//memcpy(f->file,f->buffer, f->wpointer);
+			if (write(f->file, f->buffer, f->wpointer) < 0)	//write what you already have
+				return -1;
+		else
+		//if (f->pointer != 0)
 			//memcpy(f->previous, &(f->buffer[f->pointer]), f->pointer);
 			memcpy(f->previous, f->buffer, f->pointer);
 	}
@@ -52,6 +54,9 @@ int my_fclose(MY_FILE *f) {
 
 int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
 
+	/* end of file reached */
+	if (f->eof)
+		return 0;
 	/* check for errors */
 	if (size < nbelem || f->buffer == NULL) {	//error
 		return -1;
@@ -68,7 +73,7 @@ int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
 		f->previous = p;
 	}
 	
-	if (nbelem > BUFFER_SIZE) {		//check if the size is bigger than the buffer
+	if (nbelem > BUFFER_SIZE || (f->pointer + nbelem) > BUFFER_SIZE) {		//check if the size is bigger than the buffer
 		int rest = (nbelem - (BUFFER_SIZE - f->pointer));	//how much more do need to read
 		if (eof = read(f->file, f->buffer, (BUFFER_SIZE - f->pointer)) < 0)		//read what is left in the buffer
 			return -1;
@@ -76,7 +81,7 @@ int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
 			f->eof = 0;
 			return 0;
 		}*/
-		memcpy(destination, f->buffer[f->pointer], eof);
+		memcpy(destination, &(f->buffer[f->pointer]), eof);
 		while (rest>=0) {
 			if( eof = read(f->file, f->buffer,(rest>BUFFER_SIZE ? BUFFER_SIZE : rest)) < 0)
 				return -1;
@@ -86,11 +91,11 @@ int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
 			/*if (!eof) {
 				f->eof = 1;
 			}*/
-			f->pointer == 0;
+			f->pointer = 0;
 		}
 	}
 		// check if we need to read at all
-	else if (f->pointer == 0 || (f->pointer + nbelem) > BUFFER_SIZE) {		//no data has been read yet or not all data is not in buffer
+	else if (f->pointer == 0 ) {		//no data has been read yet or not all data is not in buffer
 		if (eof = read(f->file, f->buffer, BUFFER_SIZE) < 0)	//read as much as you can
 			return -1;
 		/* check if eof */
@@ -103,9 +108,8 @@ int my_fread(void *p, size_t size, size_t nbelem, MY_FILE *f) {
 		memcpy(destination, &(f->buffer[f->pointer]), nbelem);
 	}
 	/* return */
-	if (!(f->pointer == (BUFFER_SIZE-1)) && (f->buffer[f->pointer + 1] > 128 || f->buffer[f->pointer+1] <0 || f->buffer[f->pointer+1] == NULL) && !eof) {	//reached the end of buffer	//TODO null comparison doesn't work	/side condition!!!
+	if (!(f->pointer == (BUFFER_SIZE-2)) && (f->buffer[f->pointer + 1] > 128 || f->buffer[f->pointer+1] <0) && !eof) {	//reached the end of buffer
 		f->eof = 1;
-		return 0;
 	}
 	if (f->pointer + nbelem < BUFFER_SIZE)	//TODO change condition to include overflow
 		f->pointer += nbelem;	//move the pointer
@@ -124,8 +128,9 @@ int my_fwrite(void *p, size_t taille, size_t nbelem, MY_FILE *f) {
 	/* flushing buffer if destination is different */
 	if (f->previous != NULL && p != f->previous) {
 		//memcpy(f->previous, &(f->buffer[0]), f->pointer +1);	//copy everything there is
-		if (eof = write(f->file, f->buffer, f->wpointer + 1) < 0)	//write what you already have
+		/*if (eof = write(f->file, f->buffer, f->wpointer + 1) < 0)	//write what you already have
 			return -1;	//error but it shouldn't be here
+		f->wpointer = 0;*/
 		f->previous = p;
 	}
 	else if (f->previous == NULL) {
@@ -177,7 +182,7 @@ int my_feof(MY_FILE *f) {
 
 int my_fprintf(MY_FILE *f, char *format, ...) {
 	va_list args;	//list of arguments
-	int i=0,num=0;	//iterator/number of args read
+	int i=0,num=0,j = 0;	//iterator/number of args read
 	char temp = *(format+i);		//currently printed character
 	char* string;	//string for formating
 	int tempint;	//int for formating
@@ -185,11 +190,15 @@ int my_fprintf(MY_FILE *f, char *format, ...) {
 	va_start(args, format);
 
 	/* loop for entire inputed string */
-	while ( temp != NULL)	
+	while ( *(format+i) != '\0')	
 	{
-		if ( temp != '%')	//dealing with a normal text
-			my_fwrite(&temp, 1, 1, f);
+		if (*(format+i) != '%') {	//dealing with a normal text
+			i++;
+			j++;
+		}
 		else {						//inserting formating
+			my_fwrite((format +i - j), j, j, f);
+			j = 0;
 			switch (*(format + i + 1)) {
 				case 'd':		//integer
 					tempint = va_arg(args, int);	//integer for conversion
@@ -204,23 +213,23 @@ int my_fprintf(MY_FILE *f, char *format, ...) {
 				case 's':		//string
 					/* loop */
 					string = va_arg(args, char*);	//string to be inserted
-					int j = 0;
-					temp = *(string+j) ;				//temporary character to read string one char at a time
-					while (temp != '\0') {
-						my_fwrite(&temp, 1, 1, f);
+					//temp = *(string+j) ;				//temporary character to read string one char at a time
+					while (*(string+j)!= '\0') {
 						j++;
-						temp = *(string +j);
+						//temp = *(string +j);
 					}
+					my_fwrite((string), j, j, f);
 					break;
 				default:
 					return -1;
 			}
+			j = 0;
 			num++;
-			i++;
+			i+=2;
 		}
-		i++;
 		temp = *(format + i);
 	}
+	my_fwrite((format+i-j), j, j, f);
 	va_end(args);                 // Cleans up the list
 
 	return num;
@@ -232,6 +241,7 @@ int my_fscanf(MY_FILE *f, char *format, ...) {
 	char temp = *(format+i);		//currently scanned character
 	char* string;	//string for formating
 	int* destint;	//address for integer values
+	char tempchar;	//char for formating
 	int tempint = 0;	//int for formating
 	/* Initializing arguments to store all values after f */
 	va_start(args, format);
@@ -262,11 +272,13 @@ int my_fscanf(MY_FILE *f, char *format, ...) {
 				/* loop */
 				string = va_arg(args, char*);	//string to be inserted
 				int j = 0;
-				temp = *(string + j);				//temporary character to read string one char at a time
-				while ((temp != ' ' || temp != '\n') && !(f->eof)) {
-					my_fread(&temp, 1, 1, f);
+				//tempchar = *(string + j);				//temporary character to read string one char at a time
+				//while ((tempchar != ' ' || tempchar != '\n') && !(f->eof)) {
+				while ((*(string + j) != ' ' || *(string + j) != '\n') && !(f->eof)) {
+					//my_fread(&tempchar, 1, 1, f);
+					my_fread((string + j), 1, 1, f);
 					j++;
-					temp = *(string + j);
+					//tempchar = *(string + j);
 				}
 				break;
 			default:

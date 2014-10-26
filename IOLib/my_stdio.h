@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>	
 #include <stdarg.h>
+#include <string.h>
 
 typedef struct MY_FILE {
 	int file;	//file descriptor given by open
